@@ -78,11 +78,17 @@ class Filter(object):
     Each filter is one of Filter.Operators provided with a field to filter on a value.
     """
     Options = {
-        # TODO: Create a dict of filter name to the NearEarthObject or OrbitalPath property
+        # Dict of filter name to the NearEarthObject or OrbitalPath property
+        'diameter': 'diameter_min_km',
+        'distance': 'miss_distance_kilometers',
+        'is_hazardous': 'is_potentially_hazardous_asteroid'
     }
 
     Operators = {
-        # TODO: Create a dict of operator symbol to an Operators method, see README Task 3 for hint
+        # Dict of operator symbol to an Operators method, see README Task 3 for hint        
+        '=': operator.eq,
+        '>': operator.gt,
+        '>=': operator.ge,
     }
 
     def __init__(self, field, object, operation, value):
@@ -106,7 +112,17 @@ class Filter(object):
         :return: defaultdict with key of NearEarthObject or OrbitPath and value of empty list or list of Filters
         """
 
-        # TODO: return a defaultdict of filters with key of NearEarthObject or OrbitPath and value of empty list or list of Filters
+        # Default dict of filters with key of NearEarthObject or OrbitPath and value of empty list or list of Filters
+        value_to_return = defaultdict(list)
+
+        for filter_option in filter_options:
+            selectedfilter = filter_option.split(':')[0]
+
+            if hasattr(NearEarthObject(), Filter.Options.get(selectedfilter)):
+                value_to_return['NearEarthObject'].append(filter_option)
+            elif hasattr(OrbitPath(), Filter.Options.get(selectedfilter)):
+                value_to_return['OrbitPath'].append(filter_option)
+        return value_to_return
 
     def apply(self, results):
         """
@@ -115,7 +131,22 @@ class Filter(object):
         :param results: List of Near Earth Object results
         :return: filtered list of Near Earth Object results
         """
-        # TODO: Takes a list of NearEarthObjects and applies the value of its filter operation to the results
+        # Takes a list of NearEarthObjects and applies the value of its filter operation to the results
+        filtered_list = []
+
+        for near_earth_object in results:
+            operation = Filter.Operators.get(self.operation)
+            field = Filter.Options.get(self.field)
+            value = getattr(near_earth_object, field)
+
+            try:
+                if operation(value, self.value):
+                    filtered_list.append(near_earth_object)
+            except Exception as exp:
+                if operation(str(value), str(self.value)):
+                    filtered_list.append(near_earth_object)
+
+        return filtered_list
 
 
 class NEOSearcher(object):
