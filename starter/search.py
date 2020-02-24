@@ -50,7 +50,26 @@ class Query(object):
         :return: QueryBuild.Selectors namedtuple that translates the dict of query options into a SearchOperation
         """
 
-        # TODO: Translate the query parameters into a QueryBuild.Selectors object
+        # Translate the query parameters into a QueryBuild.Selectors object
+        data_search = Query.DateSearch(DateSearch.equals.name, self.date) \
+                                    if self.date else Query.DateSearch(DateSearch.between.name, \
+                                    [self.start_date, self.end_date])
+
+        return_to_object = Query.ReturnObjects.get(self.return_object)
+
+        filters=[]
+        
+        if self.filter:
+            options = Filter.create_filter_options(self.filter)
+            
+            for key, val in options.items():
+                for selected_filter in val:
+                    option = selected_filter.split(':')[0]
+                    operation = selected_filter.split(':')[1]
+                    value = selected_filter.split(':')[-1]
+                    filters.append(Filter(option, key, operation, value))
+
+        return Query.Selectors(data_search, self.number, filters, return_to_object)
 
 
 class Filter(object):
