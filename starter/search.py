@@ -161,7 +161,9 @@ class NEOSearcher(object):
         :param db: NEODatabase holding the NearEarthObject instances and their OrbitPath instances
         """
         self.db = db
-        # TODO: What kind of an instance variable can we use to connect DateSearch to how we do search?
+        # Instance variable can we use to connect DateSearch 
+        self.neo_date = dict(db.neo_date)
+        self.date_search = None
 
     def get_objects(self, query):
         """
@@ -174,7 +176,64 @@ class NEOSearcher(object):
         :param query: Query.Selectors object with query information
         :return: Dataset of NearEarthObjects or OrbitalPaths
         """
-        # TODO: This is a generic method that will need to understand, using DateSearch, how to implement search
-        # TODO: Write instance methods that get_objects can use to implement the two types of DateSearch your project
-        # TODO: needs to support that then your filters can be applied to. Remember to return the number specified in
-        # TODO: the Query.Selectors as well as in the return_type from Query.Selectors
+        # This is a generic method that will need to understand, using DateSearch, how to implement search
+        # Instance methods that get_objects can use to implement the two types of DateSearch your project
+        # needs to support that then your filters can be applied to. Remember to return the number specified in
+        # the Query.Selectors as well as in the return_type from Query.Selectors
+        self.date_search = query.date_search.type
+        date = query.date_search.values
+        
+        neos = []
+
+        if self.date_search == DateSearch.equals.name:
+            neos = self.return_date_search_equal(self.neo_date, date)
+        elif self.date_search == DateSearch.between.name:
+            neos = self.return_date_search_between(self.neo_date, date[0], date[1])
+
+        distance_filter = None
+        for selectedfilter in query.filters:
+            if selectedfilter.field == 'distance':
+                distance_filter = selectedfilter
+                continue
+            neos = selectedfilter.apply(neos)
+        orbits = self.return_orbit_paths_from_neos(neos)
+
+        filtered_orbits = orbits
+        filtered_neos = neos
+
+        if distance_filter:
+            filtered_orbits = distance_filter.apply(orbits)
+
+            filtered_neos = self.return_neo_from_orbit_path(filtered_orbits)
+
+        filtered_neos = list(set(filtered_neos))
+        filtered_orbits = list(set(filtered_orbits))
+
+        if query.return_object == OrbitPath:
+            return filtered_orbits[: int(query.number)]
+        return filtered_neos[: int(query.number)]
+    
+    
+    def return_date_search_equal(self, orbit_path, date):
+        neos_date_equal = []
+        for key, value in orbit_path.items():
+            if key == date:
+                neos_date_equal += value
+        return neos_date_equal
+    
+    def return_date_search_between(self, orbit_path, start_date, end_date):
+        neos_date_between = []
+        for key, value in orbit_path.items():
+            if key >= start_date and key <= end_date:
+                neos_date_between += value
+        return neos_date_between
+
+    def return_orbit_paths_from_neos(self, neos):
+        neo_paths = []
+        for neo in neos:
+            neo_paths += neo.orbits
+        return neo_paths
+
+    def return_neo_from_orbit_path(self, orbit_paths):
+        neo = [self.db.neo_name.get(path.neo_name) for path in orbit_paths]
+        return neo
