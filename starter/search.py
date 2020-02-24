@@ -1,6 +1,6 @@
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from enum import Enum
-
+import operator
 from exceptions import UnsupportedFeature
 from models import NearEarthObject, OrbitPath
 
@@ -34,7 +34,13 @@ class Query(object):
         """
         :param kwargs: dict of search query parameters to determine which SearchOperation query to use
         """
-        # TODO: What instance variables will be useful for storing on the Query object?
+        # Instance variables are used for storing on the Query object!
+        self.date = kwargs.get('date', None)
+        self.end_date = kwargs.get('end_date', None)
+        self.start_date = kwargs.get('start_date', None)
+        self.number = kwargs.get('number', None)
+        self.filter = kwargs.get('filter', None)        
+        self.return_object = kwargs.get('return_object', None)
 
     def build_query(self):
         """
